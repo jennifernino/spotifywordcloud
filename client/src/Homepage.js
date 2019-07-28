@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import ResultsImage from './ResultsImage.js';
 import logo from './images/MicrosoftImage.png';
-const QUERYSTRING = require('querystring');
+const querystring = require('querystring');
 
 class Homepage extends Component {
 
@@ -22,21 +22,30 @@ class Homepage extends Component {
   }
 
   componentDidMount() {
-    let client_id = "5035f40d461f480d987405fb34be0817";
-    let auth_endpoint = "https://accounts.spotify.com/authorize/?";
-    let redirect_uri = "http://localhost:3000/callback/"// Your redirect uri
-    let scope = "user-top-read user-read-private user-read-email";
-    let str = QUERYSTRING.stringify({
-      client_id: client_id,
-      redirect_uri: redirect_uri,
-      scope: scope,
-      response_type: "code",
-      show_dialog:true
-    });
+    let input = {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    };
+    let uri = "http://localhost:8080/login_credentials";
 
-    this.setState({
-      loginLink: auth_endpoint + str
-    });
+    fetch(uri, input)
+      .then(res => res.json())
+      .then(info => {
+        let str = querystring.stringify({
+          client_id: info.client_id,
+          redirect_uri: info.redirect_uri,
+          scope: info.curr_scope,
+          response_type: "code",
+          show_dialog:true
+        });
+
+        this.setState({
+          loginLink: info.auth_endpoint + str
+        });
+      });
   }
 
   render() {

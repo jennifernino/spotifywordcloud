@@ -35,35 +35,45 @@ class LoggedIn extends Component {
   }
 
   componentDidMount() {
-    let client_id = "5035f40d461f480d987405fb34be0817";
-    let auth_endpoint = "https://accounts.spotify.com/authorize/?";
-    let redirect_uri = "http://localhost:3000/callback/"// Your redirect uri
-    let scope = "user-top-read user-read-private user-read-email";
-    let str = QUERYSTRING.stringify({
-      client_id: client_id,
-      redirect_uri: redirect_uri,
-      scope: scope,
-      response_type: "code",
-      show_dialog:true
-    });
+    let input = {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    };
 
-    // TODO: Get name
+    let uri = "http://localhost:8080/login_credentials";
     let access_token = this.parseAccessToken(this.props.location.search);
-    if (access_token == null) {
-      this.setState({
-        loader:false,
-        error:true,
-        errorMessage:"Invalid access token! Unable to access your Spotify."
+
+    fetch(uri, input)
+      .then(res => res.json())
+      .then(info => {
+        let str = querystring.stringify({
+          client_id: info.client_id,
+          redirect_uri: info.redirect_uri,
+          scope: info.curr_scope,
+          response_type: "code",
+          show_dialog:true
+        });
+        
+        // TODO: Get name
+        if (access_token == null) {
+          this.setState({
+            loader:false,
+            error:true,
+            errorMessage:"Invalid access token! Unable to access your Spotify."
+          });
+        } else {
+          this.setState({
+            loader:false,
+            access_token:access_token,
+            error:false,
+            errorMessage:"",
+            logoutLink: info.auth_endpoint + str
+          });
+        }
       });
-    } else {
-      this.setState({
-        loader:false,
-        access_token:access_token,
-        error:false,
-        errorMessage:"",
-        logoutLink: auth_endpoint + str
-      });
-    }
   }
 
   parseAccessToken(str) {
@@ -77,70 +87,50 @@ class LoggedIn extends Component {
     this.setState({
       loader:true
     });
-    let data = {
+    let input = {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       }
     };
-
-    let uri = "http://localhost:8080/" + this.state.access_token ;
-
-    fetch(uri, data)
+    let uri = "http://localhost:8080/" + this.state.access_token;
+    fetch(uri, input)
       .then(res => res.json())
       .then(info => {
         this.setState({loader:false});
       });
   }
 
-  logout() {
-    let client_id = "5035f40d461f480d987405fb34be0817";
-    let auth_endpoint = "https://accounts.spotify.com/authorize/?";
-    let redirect_uri = "http://localhost:3000/callback/"// Your redirect uri
-    let scope = "user-top-read user-read-private user-read-email";
-    let str = QUERYSTRING.stringify({
-      client_id: client_id,
-      redirect_uri: redirect_uri,
-      scope: scope,
-      response_type: "code",
-    });
-
-    this.setState({
-      loginLink: auth_endpoint + str
-    });
-  }
-
   render() {
     return (
       <div className="Homepage">
-        <div className="HomeHeader">
-          <img src={logo} className="MusicWordCloud-logo" alt="Image not available" />
-          <h1>Welcome {this.state.name}</h1>
+        <div className="leftContent">
+          <div className="HomeHeader">
+            <img src={logo} className="MusicWordCloud-logo" alt="Image not available" />
+            <h1>Welcome {this.state.name}</h1>
+          </div>
+          <div className="HomeContent">
+            <button className="submitButton" onClick={this.generateImage.bind(this)}>Generate Image</button>
+            <a href={this.state.logoutLink} class="isButton">Different user?</a>
+          </div>
         </div>
-        <div className="HomeContent">
-          <button className="submitButton" onClick={this.generateImage.bind(this)}>Generate Image</button>
-          <a href={this.state.logoutLink} class="isButton">Different user?</a>
-        </div>
-        { this.state.error ?
-          (
-            <div className="Error">
-              <p>{this.state.errorMessage}</p>
-            </div>
-          ) :
-          (
-            <div className="HomeResults">
-              { this.state.loader ?
-                (<Loader type="Circles" color="white" height={80} width={80}/>) :
-                (<p></p>)
-              }
-              {this.state.imageCreated ?
+        <div className="rightContent">
+          { this.state.error ?
+            (
+              <div className="Error">
+                <p>{this.state.errorMessage}</p>
+              </div>
+            ) :
+            (
+              this.state.loader ?
+              (<Loader type="Circles" color="white" height={80} width={80}/>) :
+              (this.state.imageCreated ?
                 (<img src={results} className="ResultsImage" />) :
-                (<p></p>)}
-            </div>
-          )
-        }
-
+                (<p></p>))
+            )
+          }
+        </div>
       </div>
     );
   }
